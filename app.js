@@ -1,3 +1,8 @@
+$(document).ready(() => {
+  setUp();
+  drawStuff();
+})
+
 const WIDTH = 600;
 const HEIGHT = 600;
 
@@ -20,7 +25,7 @@ const getXCoord = x => {
 
 const getYCoord = y => {
   let yPixel = y - Y_MIN;
-  return yPixel * HEIGHT / Y_SIZE;
+  return HEIGHT - yPixel * HEIGHT / Y_SIZE;
 }
 
 const getPixel = (x, y) => {
@@ -30,7 +35,7 @@ const getPixel = (x, y) => {
 const X_AXIS = [[0, Y_MIN], [0, Y_MAX]];
 const Y_AXIS = [[X_MIN, 0], [X_MAX, 0]];
 
-$(document).ready(() => {
+const setUp = () => {
   window.svg = d3.select('#chart').append("svg")
         .attr('height', HEIGHT).attr('width', WIDTH);
 
@@ -40,12 +45,51 @@ $(document).ready(() => {
     axis.enter()
         .append('line')
         .attr('class', 'axis')
+        .attr("stroke", "black")
+        .attr("stroke-width", 3)
         .attr("x1", d => getXCoord(d[0][0]))
         .attr("y1", d => getYCoord(d[0][1]))
         .attr("x2", d => getXCoord(d[1][0]))
         .attr("y2", d => getYCoord(d[1][1]))
-        .attr("class", "line")
-        .attr("stroke", "black")
-        .attr("stroke-width", 3);
   })
-})
+}
+
+const drawComplex = (z) => {
+  console.log(z);
+  window.svg.append('line')
+    .attr('class', 'complex')
+    .attr('x1', getXCoord(0))
+    .attr('y1', getYCoord(0))
+    .attr('x2', getXCoord(z.x))
+    .attr('y2', getYCoord(z.y))
+    .attr("stroke", "steelblue")
+    .attr("stroke-width", 3);
+}
+
+class Complex {
+  constructor(x, y) {
+    this.x = x || 0;
+    this.y = y || 0;
+  }
+
+  add(z) {
+    return new Complex(this.x + z.x, this.y + z.y);
+  }
+
+  multiply(z) {
+    // (tx + ty*i)(zx + zy*i)
+    // = tx*zx + tx*zy*i + ty*zx*i - ty*zy
+    // = (tx*zx - ty*zy) + (tx*zy + ty*zx)i
+    let newX = this.x * z.x - this.y * z.y;
+    let newY = this.x * z.y + this.y * z.x;
+    return new Complex(newX, newY);
+  }
+}
+
+const drawStuff = () => {
+  let z = new Complex(.5, .5);
+  drawComplex(z);
+  let i = new Complex(0, 1);
+  drawComplex(i);
+  drawComplex(z.multiply(i));
+}
