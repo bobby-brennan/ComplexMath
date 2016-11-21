@@ -54,26 +54,17 @@ const setUp = () => {
   })
 }
 
-const drawComplex = (z, color='steelblue') => {
-  console.log(z);
-  window.svg.append('line')
-    .attr('class', 'complex')
-    .attr('x1', getXCoord(0))
-    .attr('y1', getYCoord(0))
-    .attr('x2', getXCoord(z.x))
-    .attr('y2', getYCoord(z.y))
-    .attr("stroke", color)
-    .attr("stroke-width", 3);
-}
-
 class Complex {
-  constructor(x, y) {
+  constructor(x, y, color='steelblue') {
     this.x = x || 0;
     this.y = y || 0;
+    this.color = color;
   }
 
   add(z) {
-    return new Complex(this.x + z.x, this.y + z.y);
+    this.x += z.x;
+    this.y += z.y;
+    return this;
   }
 
   multiply(z) {
@@ -82,14 +73,37 @@ class Complex {
     // = (tx*zx - ty*zy) + (tx*zy + ty*zx)i
     let newX = this.x * z.x - this.y * z.y;
     let newY = this.x * z.y + this.y * z.x;
-    return new Complex(newX, newY);
+    this.x = newX;
+    this.y = newY;
+    return this;
+  }
+
+  draw() {
+    if (!this.line) this.line = window.svg.append('line');
+    this.line
+          .attr('class', 'complex')
+          .attr('x1', getXCoord(0))
+          .attr('y1', getYCoord(0))
+          .attr('x2', getXCoord(this.x))
+          .attr('y2', getYCoord(this.y))
+          .attr("stroke", this.color)
+          .attr("stroke-width", 3);
+    return this;
+  }
+
+  undraw() {
+    if (!this.line) return;
+    this.line.remove();
+    this.line = null;
   }
 }
 
 const drawStuff = () => {
-  let z = new Complex(.5, .5);
-  drawComplex(z);
   let i = new Complex(0, 1);
-  drawComplex(i);
-  drawComplex(z.multiply(i), 'green');
+  let z = new Complex(.5, .5);
+  z.draw();
+
+  setTimeout(() => {
+    z.multiply(i).draw();
+  }, 1000)
 }
