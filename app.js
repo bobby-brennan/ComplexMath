@@ -54,7 +54,7 @@ const setUp = () => {
   })
 }
 
-const drawComplex = (z) => {
+const drawComplex = (z, color='steelblue') => {
   console.log(z);
   window.svg.append('line')
     .attr('class', 'complex')
@@ -62,7 +62,7 @@ const drawComplex = (z) => {
     .attr('y1', getYCoord(0))
     .attr('x2', getXCoord(z.x))
     .attr('y2', getYCoord(z.y))
-    .attr("stroke", "steelblue")
+    .attr("stroke", color)
     .attr("stroke-width", 3);
 }
 
@@ -91,5 +91,5 @@ const drawStuff = () => {
   drawComplex(z);
   let i = new Complex(0, 1);
   drawComplex(i);
-  drawComplex(z.multiply(i));
+  drawComplex(z.multiply(i), 'green');
 }
