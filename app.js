@@ -61,6 +61,10 @@ class Complex {
     this.color = color;
   }
 
+  copy() {
+    return new Complex(this.x, this.y, this.color);
+  }
+
   add(z) {
     this.x += z.x;
     this.y += z.y;
@@ -75,6 +79,19 @@ class Complex {
     let newY = this.x * z.y + this.y * z.x;
     this.x = newX;
     this.y = newY;
+    return this;
+  }
+
+  pow(n) {
+    if (n === 0) {
+      this.x = 1;
+      this.y = 0;
+    } else {
+      let copy = this.copy();
+      for (let i = 1; i < n; ++i) {
+        this.multiply(copy);
+      }
+    }
     return this;
   }
 
@@ -96,14 +113,34 @@ class Complex {
     this.line.remove();
     this.line = null;
   }
+
+  toString() {
+    return this.x.toFixed(4) + " " + this.y.toFixed(4) + 'i';
+  }
+}
+
+const factorial = (n) => {
+  if (n === 0) return 1;
+  else return n * factorial(n - 1);
+}
+
+const addExpTerm = (z, cur, term=0) => {
+  if (term === 0) return new Complex(1, 0, 'green');
+  let fact = new Complex(1 / factorial(term));
+  nextTerm = z.copy().pow(term).multiply(fact);
+  return cur.add(nextTerm);
 }
 
 const drawStuff = () => {
   let i = new Complex(0, 1);
-  let z = new Complex(.5, .5);
+  let z = new Complex(0, Math.PI);
   z.draw();
-
-  setTimeout(() => {
-    z.multiply(i).draw();
-  }, 1000)
+  let exp = null;
+  let term = 0;
+  setInterval(() => {
+    if (term > 15) return;
+    exp = addExpTerm(z, exp, term++);
+    console.log(exp.toString());
+    exp.draw();
+  }, 500)
 }
