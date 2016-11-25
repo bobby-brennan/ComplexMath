@@ -11,6 +11,11 @@ class Graph {
     this.drawAxes();
   }
 
+  clear() {
+    if (this.circles) this.circles.remove();
+    this.circles = null;
+  }
+
   getXCoord(x) {
     let xPixel = x - this.xRange[0];
     return xPixel * this.width / this.xSize;
@@ -145,10 +150,12 @@ class PointSet {
     this.points = points;
   }
 
+  copy() {
+    return new PointSet(this.points.map(p => p.copy()));
+  }
+
   append(set) {
     this.points = this.points.concat(set.points);
-    set.circles.remove();
-    this.makeCircles();
     return this;
   }
 
