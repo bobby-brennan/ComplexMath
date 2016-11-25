@@ -1,12 +1,19 @@
 class Complex {
-  constructor(x, y, color='steelblue') {
-    this.x = x || 0;
-    this.y = y || 0;
+  constructor(x, y, polar=false, color='steelblue') {
+    if (polar) {
+      let r = x;
+      let theta = y;
+      this.x = r * Math.cos(theta);
+      this.y = r * Math.sin(theta);
+    } else {
+      this.x = x || 0;
+      this.y = y || 0;
+    }
     this.color = color;
   }
 
   copy() {
-    return new Complex(this.x, this.y, this.color);
+    return new Complex(this.x, this.y, false, this.color);
   }
 
   copyFrom(z) {
