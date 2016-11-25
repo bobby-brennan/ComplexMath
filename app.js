@@ -6,8 +6,8 @@ $(document).ready(() => {
 const WIDTH = 600;
 const HEIGHT = 600;
 
-const X_MIN = -3;
-const X_MAX = 3;
+const X_MIN = -2;
+const X_MAX = 2;
 const Y_MIN = X_MIN;
 const Y_MAX = X_MAX;
 const X_SIZE = X_MAX - X_MIN;
@@ -62,9 +62,9 @@ const addExpTerm = (z, cur, term=0) => {
 }
 
 const drawStuff = () => {
-  let w = new Complex(.5, .5);
+  let one = new Complex(1);
   let grid = new Grid(X_SIZE / 30);
   setTimeout(() => {
-    grid.operate(z => z.multiply(z), 2000);
+    grid.operate(z => z.copyFrom(one.copy().divide(z)), 5000);
   }, 1000);
 }

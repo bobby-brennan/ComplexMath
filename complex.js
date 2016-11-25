@@ -9,6 +9,12 @@ class Complex {
     return new Complex(this.x, this.y, this.color);
   }
 
+  copyFrom(z) {
+    this.x = z.x;
+    this.y = z.y;
+    this.color = z.color;
+  }
+
   getRed() {
     return d3.scale.linear().domain([X_MIN, X_MAX]).range([0, 255])(this.x);
   }
@@ -31,6 +37,15 @@ class Complex {
     // = (tx*zx - ty*zy) + (tx*zy + ty*zx)i
     let newX = this.x * z.x - this.y * z.y;
     let newY = this.x * z.y + this.y * z.x;
+    this.x = newX;
+    this.y = newY;
+    return this;
+  }
+
+  divide(z) {
+    let div = z.x * z.x + z.y * z.y;
+    let newX = (this.x * z.x + this.y * z.y) / div;
+    let newY = (this.y * z.x - this.x * z.y) / div;
     this.x = newX;
     this.y = newY;
     return this;
