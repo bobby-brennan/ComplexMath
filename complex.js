@@ -1,5 +1,81 @@
+class Graph {
+  constructor(selector, width=500, height=500, xRange=[-1,1], yRange=[-1,1]) {
+    this.width = width;
+    this.height = height;
+    this.xRange = xRange;
+    this.yRange = yRange;
+    this.xSize = xRange[1] - xRange[0];
+    this.ySize = yRange[1] - yRange[0];
+    this.svg = d3.select(selector).append("svg")
+          .attr('height', height).attr('width', width);
+    this.drawAxes();
+  }
+
+  getXCoord(x) {
+    let xPixel = x - this.xRange[0];
+    return xPixel * this.width / this.xSize;
+  }
+  getYCoord(y) {
+    let yPixel = y - this.yRange[0];
+    return this.height - yPixel * this.height / this.ySize;
+  }
+  getPixel(x, y) {
+    return [this.getXCoord(x), this.getYCoord(y)];
+  }
+  getRed(z) {
+    return d3.scale.linear().domain(this.xRange).range([0, 255])(z.x);
+  }
+  getGreen(z) {return 0}
+  getBlue(z) {
+    return d3.scale.linear().domain(this.yRange).range([0, 255])(z.y);
+  }
+
+  drawAxes() {
+    const X_AXIS = [[0, this.yRange[0]], [0, this.yRange[1]]];
+    const Y_AXIS = [[this.xRange[0], 0], [this.xRange[1], 0]];
+    [X_AXIS, Y_AXIS].forEach(axisPoints => {
+      let className = '.' + (axisPoints === X_AXIS ? 'x' : 'y') + '-axis';
+      let axis = this.svg.selectAll(className).data([axisPoints]);
+      axis.enter()
+          .append('line')
+          .attr('class', 'axis')
+          .attr("stroke", "black")
+          .attr("stroke-width", 3)
+          .attr("x1", d => this.getXCoord(d[0][0]))
+          .attr("y1", d => this.getYCoord(d[0][1]))
+          .attr("x2", d => this.getXCoord(d[1][0]))
+          .attr("y2", d => this.getYCoord(d[1][1]))
+    })
+  }
+
+  drawComplex(z, color='steelblue') {
+    let line = this.svg.append('line');
+    line
+        .attr('class', 'complex')
+        .attr('x1', this.getXCoord(0))
+        .attr('y1', this.getYCoord(0))
+        .attr('x2', this.getXCoord(z.x))
+        .attr('y2', this.getYCoord(z.y))
+        .attr("stroke", color)
+        .attr("stroke-width", 3);
+    return this;
+  }
+
+  drawPoints(pointSet, duration=1000) {
+    if (!this.circles) {
+      this.circles = this.svg.selectAll('.grid-points').data(pointSet.points).enter().append('circle');
+      this.circles.attr('fill', d => d3.rgb(this.getRed(d), this.getGreen(d), this.getBlue(d)))
+    }
+    this.circles
+        .transition().duration(duration)
+        .attr('cx', d => this.getXCoord(d.x))
+        .attr('cy', d => this.getYCoord(d.y))
+        .attr('r', 5)
+  }
+}
+
 class Complex {
-  constructor(x, y, polar=false, color='steelblue') {
+  constructor(x, y, polar=false) {
     if (polar) {
       let r = x;
       let theta = y;
@@ -9,7 +85,6 @@ class Complex {
       this.x = x || 0;
       this.y = y || 0;
     }
-    this.color = color;
   }
 
   copy() {
@@ -19,17 +94,6 @@ class Complex {
   copyFrom(z) {
     this.x = z.x;
     this.y = z.y;
-    this.color = z.color;
-  }
-
-  getRed() {
-    return d3.scale.linear().domain([X_MIN, X_MAX]).range([0, 255])(this.x);
-  }
-
-  getGreen() {return 0}
-
-  getBlue() {
-    return d3.scale.linear().domain([Y_MIN, Y_MAX]).range([0, 255])(this.y);
   }
 
   add(z) {
@@ -71,27 +135,6 @@ class Complex {
     return this;
   }
 
-  draw() {
-    if (!this.line) this.line = window.svg.append('line');
-    this.line
-          .transition()
-          .duration(500)
-          .attr('class', 'complex')
-          .attr('x1', getXCoord(0))
-          .attr('y1', getYCoord(0))
-          .attr('x2', getXCoord(this.x))
-          .attr('y2', getYCoord(this.y))
-          .attr("stroke", this.color)
-          .attr("stroke-width", 3);
-    return this;
-  }
-
-  undraw() {
-    if (!this.line) return;
-    this.line.remove();
-    this.line = null;
-  }
-
   toString() {
     return this.x.toFixed(4) + " " + this.y.toFixed(4) + 'i';
   }
@@ -100,22 +143,17 @@ class Complex {
 class PointSet {
   constructor(points) {
     this.points = points;
-    this.makeCircles();
-    this.draw();
-  }
-
-  makeCircles() {
-    if (this.circles) this.circles.remove();
-    this.circles = window.svg.selectAll('.grid-points').data(this.points).enter().append('circle');
-    this.circles.attr('fill', d => d3.rgb(d.getRed(), d.getGreen(), d.getBlue()))
   }
 
   append(set) {
     this.points = this.points.concat(set.points);
     set.circles.remove();
     this.makeCircles();
-    this.draw();
     return this;
+  }
+
+  operate(fn) {
+    this.points.forEach(fn);
   }
 
   static grid(steps=10) {
@@ -147,18 +185,5 @@ class PointSet {
       theta += thetaStep;
     }
     return new PointSet(points);
-  }
-
-  draw(duration) {
-    this.circles
-        .transition().duration(duration)
-        .attr('cx', d => getXCoord(d.x))
-        .attr('cy', d => getYCoord(d.y))
-        .attr('r', 5)
-  }
-
-  operate(fn, duration=1000) {
-    this.points.forEach(fn);
-    this.draw(duration);
   }
 }
