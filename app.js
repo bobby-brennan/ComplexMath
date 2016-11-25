@@ -51,8 +51,9 @@ const setUp = () => {
 
 const drawStuff = () => {
   let one = new Complex(1);
-  let grid = new Grid(X_SIZE / 30);
-  setTimeout(() => {
-    grid.operate(z => z.copyFrom(one.copy().divide(z)), 5000);
-  }, 1000);
+  let points = PointSet.circle(50, 1, new Complex(0, 0));
+
+  setInterval(() => {
+    points.operate(z => z.multiply(new Complex(0, 1)), 4000);
+  }, 4000);
 }
