@@ -97,23 +97,56 @@ class Complex {
   }
 }
 
-class Grid {
-  constructor(stepSize) {
+class PointSet {
+  constructor(points) {
+    this.points = points;
+    this.makeCircles();
+    this.draw();
+  }
+
+  makeCircles() {
+    if (this.circles) this.circles.remove();
+    this.circles = window.svg.selectAll('.grid-points').data(this.points).enter().append('circle');
+    this.circles.attr('fill', d => d3.rgb(d.getRed(), d.getGreen(), d.getBlue()))
+  }
+
+  append(set) {
+    this.points = this.points.concat(set.points);
+    set.circles.remove();
+    this.makeCircles();
+    this.draw();
+    return this;
+  }
+
+  static grid(steps=10) {
     let xStep = X_MIN;
     let yStep = Y_MIN;
-    this.points = [];
+    let xStepSize = X_SIZE / steps;
+    let yStepSize = Y_SIZE / steps;
+    let points = [];
     while (xStep <= X_MAX) {
       while (yStep <= Y_MAX) {
-        this.points.push(new Complex(xStep, yStep));
-        yStep += stepSize;
+        points.push(new Complex(xStep, yStep));
+        yStep += yStepSize;
       }
       yStep = Y_MIN;
-      xStep += stepSize;
+      xStep += xStepSize;
     }
-    this.circles = window.svg.selectAll('.grid-points').data(this.points).enter().append('circle');
-    this.circles
-        .attr('fill', d => d3.rgb(d.getRed(), d.getGreen(), d.getBlue()))
-    this.draw();
+    return new PointSet(points);
+  }
+
+  static circle(steps=10, radius=1, shift=null) {
+    let points = [];
+    let theta = 0;
+    let maxTheta = 2.0 * Math.PI;
+    let thetaStep = maxTheta / steps;
+    while (theta < maxTheta) {
+      let p = new Complex(radius, theta, true);
+      if (shift) p.add(shift);
+      points.push(p);
+      theta += thetaStep;
+    }
+    return new PointSet(points);
   }
 
   draw(duration) {
