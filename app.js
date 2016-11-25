@@ -49,18 +49,6 @@ const setUp = () => {
   })
 }
 
-const factorial = (n) => {
-  if (n === 0) return 1;
-  else return n * factorial(n - 1);
-}
-
-const addExpTerm = (z, cur, term=0) => {
-  if (term === 0) return new Complex(1, 0, 'green');
-  let fact = new Complex(1 / factorial(term));
-  nextTerm = z.copy().pow(term).multiply(fact);
-  return cur.add(nextTerm);
-}
-
 const drawStuff = () => {
   let one = new Complex(1);
   let grid = new Grid(X_SIZE / 30);
