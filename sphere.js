@@ -1,8 +1,18 @@
 const RADIUS = 300;
 const updateVertex = (v, progress) => {
+  /*
+  let start = v.zeta.toPolar();
+  let end = v.targetZeta.toPolar();
+  let r = start.r * (1.0 - progress) + end.r * progress;
+  let phi = start.phi * (1.0 - progress) + end.phi * progress;
+  let zeta = math.complex({r, phi});
+  */
+  /**/
   let real = math.re(v.targetZeta) * progress + math.re(v.zeta) * (1.0 - progress);
   let im = math.im(v.targetZeta) * progress + math.im(v.zeta) * (1.0 - progress);
   let zeta = math.complex(real, im);
+  /**/
+
   let norm = Math.pow(math.re(zeta), 2) + Math.pow(math.im(zeta), 2);
   let div = (1.0 + norm) / RADIUS;
   v.x = 2.0 * math.re(zeta) / div;
@@ -81,19 +91,17 @@ $(document).ready(function() {
 
         geometry = new THREE.Geometry(); /* NO ONE SAID ANYTHING ABOUT MATH! UGH!   */
 
-        particleCount = 20000; /* Leagues under the sea */
-
         /*  Hope you took your motion sickness pills;
-    We're about to get loopy.   */
+            We're about to get loopy.   */
         geometry.colors = [];
-        let steps = 50;
+        let steps = 30;
         for (let x = 0; x < steps; ++x) {
           for (let y = 0; y < steps; ++y) {
             for (let z = 0; z < steps; ++z) {
               var vertex = new THREE.Vector3();
-              vertex.x = Math.random() - .5;
-              vertex.y = Math.random() - .5;
-              vertex.z = Math.random() - .5;
+              vertex.x = x / steps - .5;
+              vertex.y = y / steps - .5;
+              vertex.z = z / steps - .5;
               let norm =
                 vertex.x * vertex.x +
                 vertex.y * vertex.y +
@@ -102,11 +110,11 @@ $(document).ready(function() {
               vertex.x /= norm / RADIUS;
               vertex.y /= norm / RADIUS;
               vertex.z /= norm / RADIUS;
-              let x = math.complex(vertex.x);
-              let y = math.complex(vertex.y);
-              let z = math.complex(vertex.z);
-              vertex.zeta = math.add(x, math.multiply(y, math.complex(0, 1)));
-              vertex.zeta = math.divide(vertex.zeta, math.subtract(1, z));
+              let cx = math.complex(vertex.x);
+              let cy = math.complex(vertex.y);
+              let cz = math.complex(vertex.z);
+              vertex.zeta = math.add(cx, math.multiply(cy, math.complex(0, 1)));
+              vertex.zeta = math.divide(vertex.zeta, math.subtract(1, cz));
               vertex.targetZeta = math.divide(1, vertex.zeta);
               geometry.vertices.push(vertex);
 
@@ -134,13 +142,17 @@ $(document).ready(function() {
 
         let axisSize = 500;
         ([1,2,3]).forEach(axis => {
-          var material = new THREE.LineBasicMaterial({
-              color: 0x0000ff
-          });
-          var geometry = new THREE.Geometry();
+          let color = 0x000000;
+          if (axis === 1) color = 0xff0000
+          if (axis === 2) color = 0x00ff00
+          if (axis === 3) color = 0x0000ff
+          var material = new THREE.LineBasicMaterial({color})
           let x = axis === 1 ? axisSize : 0;
           let y = axis === 2 ? axisSize : 0;
           let z = axis === 3 ? axisSize : 0;
+          var geometry = new THREE.Geometry();
+          geometry.vertices.push(new THREE.Vector3(-x, -y, -z));
+          geometry.vertices.push(new THREE.Vector3(x, y, z));
           var line = new THREE.Line(geometry, material);
           scene.add(line);
         })
@@ -177,7 +189,7 @@ $(document).ready(function() {
         requestAnimationFrame(animate);
         TWEEN.update(time);
         render();
-        //geometry.vertices.forEach(v => updateVertex(v, animation.progress));
+        geometry.vertices.forEach(v => updateVertex(v, animation.progress));
         geometry.verticesNeedUpdate = true;
         stats.update();
     }
