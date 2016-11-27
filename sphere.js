@@ -38,23 +38,30 @@ const getRandomVertex = (bias={x:1,y:1,z:1}) => {
   return normalizeVertex(vertex);
 }
 
-const getTarget = (zeta) => {
-  return math.divide(1, zeta);
+const EQUATIONS = {
+  times_i: z => math.multiply(math.complex(0, 1), z),
+  inverse: z => math.divide(1, z),
+  minus_one: z => math.subtract(z, 1),
 }
 
+const getTarget = EQUATIONS.times_i;
+
+const INTERPOLATION_STRATEGY='POLAR'
+
 const updateVertex = (v, progress) => {
-  /*
-  let start = v.zeta.toPolar();
-  let end = v.targetZeta.toPolar();
-  let r = start.r * (1.0 - progress) + end.r * progress;
-  let phi = start.phi * (1.0 - progress) + end.phi * progress;
-  let zeta = math.complex({r, phi});
-  */
-  /**/
-  let real = math.re(v.targetZeta) * progress + math.re(v.zeta) * (1.0 - progress);
-  let im =   math.im(v.targetZeta) * progress + math.im(v.zeta) * (1.0 - progress);
-  let zeta = math.complex(real, im);
-  /**/
+  let zeta = null;
+  if (INTERPOLATION_STRATEGY === 'POLAR') {
+    let start = v.zeta.toPolar();
+    let end = v.targetZeta.toPolar();
+    let endPhi = start.phi > end.phi ? end.phi + Math.PI * 2.0 : end.phi;
+    let r =   start.r   * (1.0 - progress) + end.r  * progress;
+    let phi = start.phi * (1.0 - progress) + endPhi * progress;
+    zeta = math.complex({r, phi});
+  } else {
+    let real = math.re(v.targetZeta) * progress + math.re(v.zeta) * (1.0 - progress);
+    let im =   math.im(v.targetZeta) * progress + math.im(v.zeta) * (1.0 - progress);
+    zeta = math.complex(real, im);
+  }
   setVertexFromZeta(v, zeta);
 }
 
@@ -129,7 +136,7 @@ $(document).ready(function() {
         geometry = new THREE.Geometry();
         geometry.colors = [];
 
-        //coverSphere(geometry);
+        coverSphere(geometry);
         addUnitCircle(geometry, {x: 1, y: 1, z: 0}, 0x0000ff);
         addUnitCircle(geometry, {x: 1, y: 0, z: 1}, 0xff0000);
         addUnitCircle(geometry, {x: 0, y: 1, z: 1}, 0x00ff00);
@@ -166,7 +173,7 @@ $(document).ready(function() {
     }
 
     function coverSphere(geometry) {
-      let steps = 30;
+      let steps = 15;
       for (let x = 0; x < steps; ++x) {
         for (let y = 0; y < steps; ++y) {
           for (let z = 0; z < steps; ++z) {
@@ -198,8 +205,8 @@ $(document).ready(function() {
       let axisSize = 500;
       ([1,2,3]).forEach(axis => {
         let color = 0x000000;
-        if (axis === 1) color = 0xff0000
-        if (axis === 2) color = 0x00ff00
+        if (axis === 1) color = 0x00ff00
+        if (axis === 2) color = 0xff0000
         if (axis === 3) color = 0x0000ff
         var material = new THREE.LineBasicMaterial({color})
         let x = axis === 1 ? axisSize : 0;
