@@ -1,4 +1,47 @@
 const RADIUS = 300;
+const setVertexFromZeta = (v, zeta) => {
+  let norm = Math.pow(math.re(zeta), 2) + Math.pow(math.im(zeta), 2);
+  let div = (1.0 + norm) / RADIUS;
+  v.x = 2.0 * math.re(zeta) / div;
+  v.z = 2.0 * math.im(zeta) / div;
+  v.y = (norm - 1) / div;
+}
+const getZetaFromVertex = (v) => {
+  let cx = math.complex(v.x / RADIUS);
+  let cz = math.complex(v.y / RADIUS);
+  let cy = math.complex(v.z / RADIUS);
+  let zeta = math.add(cx, math.multiply(cy, math.complex(0, 1)));
+  zeta = math.divide(zeta, math.subtract(1, cz));
+  return zeta;
+}
+
+const normalizeVertex = (vertex) => {
+  let norm =
+    vertex.x * vertex.x +
+    vertex.y * vertex.y +
+    vertex.z * vertex.z;
+  norm = Math.sqrt(norm);
+  vertex.x /= norm / RADIUS;
+  vertex.y /= norm / RADIUS;
+  vertex.z /= norm / RADIUS;
+  return vertex;
+}
+
+const getRandomVertex = (bias={x:1,y:1,z:1}) => {
+  let vertex = new THREE.Vector3();
+  vertex.x = bias.x * (Math.random() - .5);
+  vertex.y = bias.y * (Math.random() - .5);
+  vertex.z = bias.z * (Math.random() - .5);
+  normalizeVertex(vertex);
+  vertex.zeta = getZetaFromVertex(vertex);
+  vertex.targetZeta = getTarget(vertex.zeta);
+  return normalizeVertex(vertex);
+}
+
+const getTarget = (zeta) => {
+  return math.divide(1, zeta);
+}
+
 const updateVertex = (v, progress) => {
   /*
   let start = v.zeta.toPolar();
@@ -9,15 +52,10 @@ const updateVertex = (v, progress) => {
   */
   /**/
   let real = math.re(v.targetZeta) * progress + math.re(v.zeta) * (1.0 - progress);
-  let im = math.im(v.targetZeta) * progress + math.im(v.zeta) * (1.0 - progress);
+  let im =   math.im(v.targetZeta) * progress + math.im(v.zeta) * (1.0 - progress);
   let zeta = math.complex(real, im);
   /**/
-
-  let norm = Math.pow(math.re(zeta), 2) + Math.pow(math.im(zeta), 2);
-  let div = (1.0 + norm) / RADIUS;
-  v.x = 2.0 * math.re(zeta) / div;
-  v.y = 2.0 * math.im(zeta) / div;
-  v.z = (norm - 1) / div;
+  setVertexFromZeta(v, zeta);
 }
 
 $(document).ready(function() {
@@ -41,8 +79,7 @@ $(document).ready(function() {
         parameterCount, particles;
 
     var screenW = window.innerWidth;
-    var screenH = window.innerHeight; /*SCREEN*/
-    var spdx = 0, spdy = 0;
+    var screenH = window.innerHeight;
     var mouseX = 0, mouseY = 0;
     var dragX = 0, dragY = 0;
     var mouseDown = false;
@@ -89,45 +126,14 @@ $(document).ready(function() {
         document.body.style.margin = 0;
         document.body.style.overflow = 'hidden';
 
-        geometry = new THREE.Geometry(); /* NO ONE SAID ANYTHING ABOUT MATH! UGH!   */
-
-        /*  Hope you took your motion sickness pills;
-            We're about to get loopy.   */
+        geometry = new THREE.Geometry();
         geometry.colors = [];
-        let steps = 30;
-        for (let x = 0; x < steps; ++x) {
-          for (let y = 0; y < steps; ++y) {
-            for (let z = 0; z < steps; ++z) {
-              var vertex = new THREE.Vector3();
-              vertex.x = x / steps - .5;
-              vertex.y = y / steps - .5;
-              vertex.z = z / steps - .5;
-              let norm =
-                vertex.x * vertex.x +
-                vertex.y * vertex.y +
-                vertex.z * vertex.z;
-              norm = Math.sqrt(norm);
-              vertex.x /= norm / RADIUS;
-              vertex.y /= norm / RADIUS;
-              vertex.z /= norm / RADIUS;
-              let cx = math.complex(vertex.x);
-              let cy = math.complex(vertex.y);
-              let cz = math.complex(vertex.z);
-              vertex.zeta = math.add(cx, math.multiply(cy, math.complex(0, 1)));
-              vertex.zeta = math.divide(vertex.zeta, math.subtract(1, cz));
-              vertex.targetZeta = math.divide(1, vertex.zeta);
-              geometry.vertices.push(vertex);
 
-              let polar = vertex.zeta.toPolar();
-              let color = new THREE.Color();
-              color.setHSL(polar.phi / (Math.PI * 2), 1.0, 0.5 );
-              geometry.colors.push(color);
-            }
-          }
-        }
-
-        let tween = new TWEEN.Tween(animation).to({progress: 1.0}, 5000).start();
-        tween.delay(1000).repeat(Infinity);
+        //coverSphere(geometry);
+        addUnitCircle(geometry, {x: 1, y: 1, z: 0}, 0x0000ff);
+        addUnitCircle(geometry, {x: 1, y: 0, z: 1}, 0xff0000);
+        addUnitCircle(geometry, {x: 0, y: 1, z: 1}, 0x00ff00);
+        addAxes(geometry);
 
         material = new THREE.PointCloudMaterial({
             size: 5,
@@ -135,40 +141,13 @@ $(document).ready(function() {
         });
 
         particles = new THREE.PointCloud(geometry, material);
-        particles.rotation.x = Math.random() * 6;
-        particles.rotation.y = Math.random() * 6;
-        particles.rotation.z = Math.random() * 6;
         scene.add(particles);
 
-        let axisSize = 500;
-        ([1,2,3]).forEach(axis => {
-          let color = 0x000000;
-          if (axis === 1) color = 0xff0000
-          if (axis === 2) color = 0x00ff00
-          if (axis === 3) color = 0x0000ff
-          var material = new THREE.LineBasicMaterial({color})
-          let x = axis === 1 ? axisSize : 0;
-          let y = axis === 2 ? axisSize : 0;
-          let z = axis === 3 ? axisSize : 0;
-          var geometry = new THREE.Geometry();
-          geometry.vertices.push(new THREE.Vector3(-x, -y, -z));
-          geometry.vertices.push(new THREE.Vector3(x, y, z));
-          var line = new THREE.Line(geometry, material);
-          scene.add(line);
-        })
+        renderer = new THREE.WebGLRenderer();
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(WIDTH, HEIGHT);
 
-        /*  If my calculations are correct, when this baby hits 88 miles per hour...
-    you're gonna see some serious shit. */
-
-        renderer = new THREE.WebGLRenderer(); /*    Rendererererers particles.  */
-        renderer.setPixelRatio(window.devicePixelRatio); /* Probably 1; unless you're fancy.    */
-        renderer.setSize(WIDTH, HEIGHT); /* Full screen baby Wooooo!    */
-
-        container.appendChild(renderer.domElement); /* Let's add all this crazy junk to the page.   */
-
-        /*  I don't know about you, but I like to know how bad my
-        code is wrecking the performance of a user's machine.
-        Let's see some damn stats!  */
+        container.appendChild(renderer.domElement);
 
         stats = new Stats();
         stats.domElement.style.position = 'absolute';
@@ -176,7 +155,8 @@ $(document).ready(function() {
         stats.domElement.style.right = '0px';
         container.appendChild(stats.domElement);
 
-        /* Event Listeners */
+        let tween = new TWEEN.Tween(animation).to({progress: 1.0}, 5000).start();
+        tween.delay(2000).repeat(Infinity);
 
         window.addEventListener('resize', onWindowResize, false);
         document.addEventListener('mousemove', onDocumentMouseMove, false);
@@ -185,32 +165,72 @@ $(document).ready(function() {
 
     }
 
+    function coverSphere(geometry) {
+      let steps = 30;
+      for (let x = 0; x < steps; ++x) {
+        for (let y = 0; y < steps; ++y) {
+          for (let z = 0; z < steps; ++z) {
+            var vertex = new THREE.Vector3();
+            vertex.x = x / steps - .5;
+            vertex.y = y / steps - .5;
+            vertex.z = z / steps - .5;
+            normalizeVertex(vertex);
+            vertex.zeta = getZetaFromVertex(vertex);
+            vertex.targetZeta = getTarget(vertex.zeta);
+            geometry.vertices.push(vertex);
+
+            let color = new THREE.Color(1, 1, 1);
+            geometry.colors.push(color);
+          }
+        }
+      }
+    }
+
+    function addUnitCircle(geometry, bias, color) {
+      for (let step = 0; step < 1000; ++step) {
+        let vertex = getRandomVertex(bias);
+        geometry.vertices.push(vertex);
+        geometry.colors.push(new THREE.Color(color));
+      }
+    }
+
+    function addAxes(geometry) {
+      let axisSize = 500;
+      ([1,2,3]).forEach(axis => {
+        let color = 0x000000;
+        if (axis === 1) color = 0xff0000
+        if (axis === 2) color = 0x00ff00
+        if (axis === 3) color = 0x0000ff
+        var material = new THREE.LineBasicMaterial({color})
+        let x = axis === 1 ? axisSize : 0;
+        let y = axis === 2 ? axisSize : 0;
+        let z = axis === 3 ? axisSize : 0;
+        var geometry = new THREE.Geometry();
+        geometry.vertices.push(new THREE.Vector3(-x, -y, -z));
+        geometry.vertices.push(new THREE.Vector3(x, y, z));
+        var line = new THREE.Line(geometry, material);
+        scene.add(line);
+      })
+    }
+
     function animate(time) {
-        requestAnimationFrame(animate);
-        TWEEN.update(time);
-        render();
-        geometry.vertices.forEach(v => updateVertex(v, animation.progress));
-        geometry.verticesNeedUpdate = true;
-        stats.update();
+      requestAnimationFrame(animate);
+      TWEEN.update(time);
+      render();
+      geometry.vertices.forEach(v => updateVertex(v, animation.progress));
+      geometry.verticesNeedUpdate = true;
+      stats.update();
     }
 
     function render() {
-        var time = Date.now() * 0.00005;
-        let sensitivity = 100;
-
-        scene.children.forEach(o => {
-          o.rotation.x = dragY / sensitivity;
-          o.rotation.y = dragX / sensitivity;
-        })
-
-        camera.lookAt(scene.position);
-        /*
-        for (i = 0; i < scene.children.length; i++) {
-            var object = scene.children[i];
-            object.rotation.y = time * (i < 4 ? i + 1 : -(i + 1));
-        }
-        */
-        renderer.render(scene, camera);
+      var time = Date.now() * 0.00005;
+      let sensitivity = 100;
+      scene.children.forEach(o => {
+        o.rotation.x = dragY / sensitivity;
+        o.rotation.y = dragX / sensitivity;
+      })
+      camera.lookAt(scene.position);
+      renderer.render(scene, camera);
     }
 
     function onDocumentMouseMove(e) {
